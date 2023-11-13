@@ -9,7 +9,7 @@ User = get_user_model()
 
 
 class TestNotesList(TestCase):
-    """Тесты для списка заметок."""
+    """Тесты для списка заметок и формы редактирования заметки"""
 
     @classmethod
     def setUpTestData(cls):
@@ -33,37 +33,25 @@ class TestNotesList(TestCase):
             (self.reader, False),
         )
         for user, status in users_statuses:
-            self.client.force_login(user)
-            url = reverse('notes:list')
-            response = self.client.get(url)
-            object_list = response.context['object_list']
-            self.assertEqual((self.note in object_list), status)
+            with self.subTest(user=user):
+                self.client.force_login(user)
+                url = reverse('notes:list')
+                response = self.client.get(url)
+                self.assertIn('object_list', response.context)
+                object_list = response.context['object_list']
+                self.assertIs((self.note in object_list), status)
 
-
-class TestNoteForm(TestCase):
-    """Тесты для формы добавления/редактирования заметки."""
-
-    @classmethod
-    def setUpTestData(cls):
-        """Создает тестовые данные перед запуском тестов."""
-        cls.author = User.objects.create(username='Автор')
-        cls.note = Note.objects.create(
-            title='Заголовок',
-            text='Текст',
-            slug='slug_for_args',
-            author=cls.author
+    def test_pages_contains_form(self):
+        """
+        Проверяет, что на страницах добавления и
+        редактирования заметки есть форма.
+        """
+        self.client.force_login(self.author)
+        urls = (
+            reverse('notes:add', None),
+            reverse('notes:edit', args=(self.note.slug,)),
         )
-
-    def test_add_page_contains_form(self):
-        """Проверяет, что на странице добавления заметки есть форма."""
-        self.client.force_login(self.author)
-        url = reverse('notes:add')
-        response = self.client.get(url)
-        self.assertIsInstance(response.context['form'], NoteForm)
-
-    def test_edit_page_contains_form(self):
-        """Проверяет, что на странице редактирования заметки есть форма."""
-        self.client.force_login(self.author)
-        url = reverse('notes:edit', args=(self.note.slug,))
-        response = self.client.get(url)
-        self.assertIsInstance(response.context['form'], NoteForm)
+        for url in urls:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertIsInstance(response.context.get('form'), NoteForm)

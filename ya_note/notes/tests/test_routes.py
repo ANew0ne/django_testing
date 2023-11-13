@@ -27,14 +27,25 @@ class TestRoutes(TestCase):
             slug='test_slug',
             author=cls.author
         )
+        cls.home_url = reverse('notes:home')
+        cls.login_url = reverse('users:login')
+        cls.logout_url = reverse('users:logout')
+        cls.signup_url = reverse('users:signup')
+        cls.success_url = reverse('notes:success')
+        cls.add_url = reverse('notes:add')
+        cls.list_url = reverse('notes:list')
+        cls.edit_url = reverse('notes:edit', args=(cls.note.slug,))
+        cls.detail_url = reverse('notes:detail', args=(cls.note.slug,))
+        cls.delete_url = reverse('notes:delete', args=(cls.note.slug,))
 
     def test_pages_availability(self):
         """Проверяет, что все страницы доступны анонимным пользователям."""
-        urls = ('notes:home', 'users:login', 'users:logout', 'users:signup')
+        urls = (
+            self.home_url, self.login_url, self.logout_url, self.signup_url
+        )
         for name in urls:
             with self.subTest(name=name):
-                url = reverse(name)
-                response = self.client.get(url)
+                response = self.client.get(name)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_availability_for_auth_user(self):
@@ -42,11 +53,10 @@ class TestRoutes(TestCase):
         Проверяет, что страницы добавления, списка заметок и успешного
         добавления заметки доступны только авторизованным пользователям.
         """
-        urls = ('notes:add', 'notes:list', 'notes:success')
+        urls = (self.success_url, self.add_url, self.list_url)
         for name in urls:
             with self.subTest(name=name):
-                url = reverse(name)
-                response = self.auth_client.get(url)
+                response = self.auth_client.get(name)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_pages_availability_for_author(self):
@@ -60,10 +70,9 @@ class TestRoutes(TestCase):
         )
         for user, status in users_statuses:
             self.client.force_login(user)
-            for name in ('notes:edit', 'notes:delete', 'notes:detail'):
+            for name in (self.edit_url, self.delete_url, self.detail_url):
                 with self.subTest(user=user, name=name):
-                    url = reverse(name, args=(self.note.slug,))
-                    response = self.client.get(url)
+                    response = self.client.get(name)
                     self.assertEqual(response.status_code, status)
 
     def test_redirect_for_anonymous_client(self):
@@ -73,17 +82,11 @@ class TestRoutes(TestCase):
         страницы редактирования и удаления заметок.
         """
         urls = (
-            ('notes:detail', (self.note.slug,)),
-            ('notes:edit', (self.note.slug,)),
-            ('notes:delete', (self.note.slug,)),
-            ('notes:add', None),
-            ('notes:list', None),
-            ('notes:success', None),
+            self.edit_url, self.delete_url, self.detail_url,
+            self.add_url, self.list_url, self.success_url
         )
-        login_url = reverse('users:login')
-        for name, args in urls:
+        for name in urls:
             with self.subTest(name=name):
-                url = reverse(name, args=args)
-                redirect_url = f'{login_url}?next={url}'
-                response = self.client.get(url)
+                redirect_url = f'{self.login_url}?next={name}'
+                response = self.client.get(name)
                 self.assertRedirects(response, redirect_url)
