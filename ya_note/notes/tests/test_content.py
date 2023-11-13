@@ -35,8 +35,7 @@ class TestNotesList(TestCase):
         for user, status in users_statuses:
             with self.subTest(user=user):
                 self.client.force_login(user)
-                url = reverse('notes:list')
-                response = self.client.get(url)
+                response = self.client.get(reverse('notes:list'))
                 self.assertIn('object_list', response.context)
                 object_list = response.context['object_list']
                 self.assertIs((self.note in object_list), status)

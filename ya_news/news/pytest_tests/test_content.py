@@ -23,6 +23,7 @@ def test_news_order(create_news_list, client, home_url):
     в хронологическом порядке: от самых новых к самым старым.
     """
     response = client.get(home_url)
+    assert 'object_list' in response.context
     object_list = response.context['object_list']
     all_dates = [news.date for news in object_list]
     sorted_dates = sorted(all_dates, reverse=True)
@@ -64,5 +65,4 @@ def test_authorized_client_has_form(client, author, detail_url):
     """
     client.force_login(author)
     response = client.get(detail_url)
-    assert response.context.get('form') is not None
-    assert isinstance(response.context['form'], CommentForm)
+    assert isinstance(response.context.get('form'), CommentForm)

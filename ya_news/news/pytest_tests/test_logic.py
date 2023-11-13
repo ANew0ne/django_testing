@@ -9,7 +9,7 @@ from news.models import Comment
 
 @pytest.mark.django_db
 def test_anonymous_user_cant_create_note(
-    client, form_data, detail_url, login_url
+        client, form_data, detail_url, login_url
 ):
     """
     Проверяет, что незарегистрированный пользователь

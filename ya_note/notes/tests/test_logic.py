@@ -43,8 +43,9 @@ class NoteCreationTests(TestCase):
     def test_logged_in_user_can_create_note(self):
         """Проверяет, что авторизованный пользователь может создать заметку."""
         Note.objects.all().delete()
-        url = reverse('notes:add')
-        response = self.author_client.post(url, data=self.form_data)
+        response = self.author_client.post(
+            reverse('notes:add'), data=self.form_data
+        )
         self.assertRedirects(response, reverse('notes:success'))
         self.assertEqual(Note.objects.count(), 1)
         new_note = Note.objects.get()
@@ -56,10 +57,9 @@ class NoteCreationTests(TestCase):
     def test_anonymous_user_cannot_create_note(self):
         """Проверяет, что анонимный пользователь не может создать заметку."""
         notes_count = Note.objects.count()
-        url = reverse('notes:add')
-        response = self.client.post(url, data=self.form_data)
+        response = self.client.post(reverse('notes:add'), data=self.form_data)
         login_url = reverse('users:login')
-        expected_url = f'{login_url}?next={url}'
+        expected_url = f'{login_url}?next={reverse("notes:add")}'
         self.assertRedirects(response, expected_url)
         self.assertEqual(Note.objects.count(), notes_count)
 
@@ -69,9 +69,10 @@ class NoteCreationTests(TestCase):
         неуникальным slug выводится ошибка.
         """
         notes_count = Note.objects.count()
-        url = reverse('notes:add')
-        self.auth_client.post(url, data=self.form_data)
-        response = self.auth_client.post(url, data=self.form_data)
+        self.auth_client.post(reverse('notes:add'), data=self.form_data)
+        response = self.auth_client.post(
+            reverse('notes:add'), data=self.form_data
+        )
         self.assertFormError(response, 'form', 'slug',
                              errors=(self.note.slug + WARNING))
         self.assertEqual(Note.objects.count(), notes_count)
@@ -82,16 +83,18 @@ class NoteCreationTests(TestCase):
         он будет автоматически сгенерирован на основе заголовка заметки.
         """
         Note.objects.all().delete()
-        url = reverse('notes:add')
-        self.auth_client.post(url, data=self.form_empty_slug_data)
+        self.auth_client.post(
+            reverse('notes:add'), data=self.form_empty_slug_data
+        )
         new_note = Note.objects.get()
         expected_slug = pytils.translit.slugify(new_note.title)
         self.assertEqual(new_note.slug, expected_slug)
 
     def test_author_can_edit_note(self):
         """Проверяет, что автор заметки может ее отредактировать."""
-        url = reverse('notes:edit', args=(self.note.slug,))
-        response = self.author_client.post(url, self.form_data)
+        response = self.author_client.post(
+            reverse('notes:edit', args=(self.note.slug,)), self.form_data
+        )
         self.assertRedirects(response, reverse('notes:success'))
         self.note.refresh_from_db()
         self.assertEqual(self.note.title, self.form_data['title'])
@@ -103,8 +106,9 @@ class NoteCreationTests(TestCase):
         Проверяет, что другой пользователь не может
         отредактировать чужую заметку.
         """
-        url = reverse('notes:edit', args=(self.note.slug,))
-        response = self.auth_client.post(url, self.form_data)
+        response = self.auth_client.post(
+            reverse('notes:edit', args=(self.note.slug,)), self.form_data
+        )
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
         note_from_db = Note.objects.get(id=self.note.id)
         self.assertEqual(self.note.title, note_from_db.title)
@@ -113,8 +117,9 @@ class NoteCreationTests(TestCase):
 
     def test_author_can_delete_note(self):
         """Проверяет, что автор заметки может ее удалить."""
-        url = reverse('notes:delete', args=(self.note.slug,))
-        response = self.author_client.post(url)
+        response = self.author_client.post(
+            reverse('notes:delete', args=(self.note.slug,))
+        )
         notes_count = Note.objects.count()
         self.assertRedirects(response, reverse('notes:success'))
         self.assertEqual(Note.objects.count(), notes_count)
@@ -125,7 +130,8 @@ class NoteCreationTests(TestCase):
         не может удалить чужую заметку.
         """
         notes_count = Note.objects.count()
-        url = reverse('notes:delete', args=(self.note.slug,))
-        response = self.auth_client.post(url)
+        response = self.auth_client.post(
+            reverse('notes:delete', args=(self.note.slug,))
+        )
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
         self.assertEqual(Note.objects.count(), notes_count)
